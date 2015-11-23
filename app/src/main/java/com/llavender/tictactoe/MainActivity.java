@@ -1,19 +1,13 @@
 package com.llavender.tictactoe;
 
-import android.app.Activity;
-import android.app.FragmentManager;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
-import android.graphics.PointF;
 import android.graphics.drawable.ColorDrawable;
-import android.graphics.drawable.Drawable;
-import android.support.annotation.Nullable;
-import android.support.v7.app.ActionBar;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -29,10 +23,16 @@ public class MainActivity extends AppCompatActivity {
 
     ImageButton button1, button2, button3, button4, button5, button6, button7, button8, button9;
     ArrayList<ImageButton> buttonList;
+
     LinearLayout wholeView;
+
     int baseColor;
 
+    SharedPreferences prefs;
+
     Intent starterIntent;
+
+    boolean someoneWon;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,6 +66,33 @@ public class MainActivity extends AppCompatActivity {
         return super.dispatchTouchEvent(ev);
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.menu_main, menu);
+
+        return super.onCreateOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+
+        switch(id){
+            case R.id.action_refresh:
+                finish();
+                startActivity(starterIntent);
+                break;
+            case R.id.action_show_stats:
+                //Toast wins and losses
+                Toast.makeText(this, "User Wins : " + prefs.getInt("USER_WINS", 0) + "\n Computer" +
+                        " Wins: " + prefs.getInt("COMP_WINS", 0) + "\n Tie Games: " + prefs.getInt
+                        ("CAT_WINS", 0), Toast.LENGTH_LONG).show();
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
 
     public void setButtonClickListeners(){
         for(final ImageButton button : buttonList){
@@ -73,27 +100,33 @@ public class MainActivity extends AppCompatActivity {
             button.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    button.setEnabled(false);
-                    button.setBackgroundColor(Color.RED);
+                    if(!someoneWon) {
+                        button.setBackgroundColor(Color.RED);
 
-                    if(didUserWin()){
-                        logResults("user");
-                        disableButtons();
-                    } else if (allSquaresTaken()) {
-                        Toast.makeText(getApplicationContext(), "Cat's game", Toast.LENGTH_SHORT).show();
-                        logResults("cat");
-                    } else {
-                        generateComputerMove();
+                        if (didUserWin()) {
+                            logResults("user");
+                            someoneWon = true;
+                            Toast.makeText(getApplicationContext(), "You Won!", Toast.LENGTH_SHORT).show();
+                        }
+                        else if (allSquaresTaken()) {
+                            Toast.makeText(getApplicationContext(), "Cat's game", Toast.LENGTH_SHORT).show();
+                            logResults("cat");
+                            someoneWon = true;
+                        }
+                        else {
+                            generateComputerMove();
 
-                        if(didComputerWin()){
-                            logResults("computer");
+                            if (didComputerWin()) {
+                                Toast.makeText(getApplicationContext(), "You LOSE!", Toast.LENGTH_SHORT).show();
+                                logResults("computer");
+                                someoneWon = true;
+                            }
                         }
                     }
                 }
             });
         }
     }
-
 
     public boolean allSquaresTaken(){
         boolean sameColor = false;
@@ -120,6 +153,7 @@ public class MainActivity extends AppCompatActivity {
         button7 = (ImageButton)findViewById(R.id.box7);
         button8 = (ImageButton)findViewById(R.id.box8);
         button9 = (ImageButton)findViewById(R.id.box9);
+
         wholeView = (LinearLayout)findViewById(R.id.wholeView);
 
         buttonList = new ArrayList<ImageButton>();
@@ -134,16 +168,11 @@ public class MainActivity extends AppCompatActivity {
         buttonList.add(button8);
         buttonList.add(button9);
 
+        prefs = getSharedPreferences("TICTACTOE", 0);
+
         baseColor = ((ColorDrawable)button1.getBackground()).getColor();
-    }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.menu_main, menu);
-
-        return super.onCreateOptionsMenu(menu);
+        someoneWon = false;
     }
 
     public void generateComputerMove(){
@@ -172,32 +201,22 @@ public class MainActivity extends AppCompatActivity {
 
         boolean userWon = false;
 
-        if (box1Color == Color.RED) {
-            if(box2Color == box1Color && box2Color == box3Color) {
-                userWon = true;
-            } else if (box1Color == box4Color && box4Color == box7Color) {
-                userWon = true;
-            } else if(box1Color == box5Color && box5Color == box9Color){
-                userWon = true;
-            }
-        } else if (box2Color == Color.RED) {
-            if (box2Color == box5Color && box5Color == box8Color) {
-                userWon = true;
-            }
-        } else if (box3Color == Color.RED){
-            if(box3Color == box6Color && box6Color == box9Color) {
-                userWon = true;
-            } else if(box3Color == box5Color && box5Color == box7Color){
-                userWon = true;
-            }
-        } else if (box4Color == Color.RED){
-            if(box4Color == box5Color && box5Color == box6Color){
-                userWon = true;
-            }
-        } else if (box7Color == Color.RED){
-            if(box7Color == box8Color && box8Color == box9Color){
-                userWon = true;
-            }
+        if (box1Color == Color.RED && box2Color == Color.RED && box3Color == Color.RED) {
+            userWon = true;
+        } else if (box1Color == Color.RED && box4Color == Color.RED && box7Color == Color.RED){
+            userWon = true;
+        } else if(box1Color == Color.RED && box5Color == Color.RED && box9Color == Color.RED){
+            userWon = true;
+        } else if (box2Color == Color.RED && box5Color == Color.RED && box8Color == Color.RED) {
+            userWon = true;
+        } else if (box3Color == Color.RED && box6Color == Color.RED && box9Color == Color.RED) {
+            userWon = true;
+        }else if(box3Color == Color.RED && box5Color == Color.RED && box7Color == Color.RED){
+            userWon = true;
+        } else if (box4Color == Color.RED && box5Color == Color.RED && box6Color == Color.RED){
+            userWon = true;
+        } else if (box7Color == Color.RED && box8Color == Color.RED && box9Color == Color.RED){
+            userWon = true;
         }
 
         return userWon;
@@ -215,38 +234,37 @@ public class MainActivity extends AppCompatActivity {
         int box9Color = ((ColorDrawable) button9.getBackground()).getColor();
         boolean computerWon = false;
 
-        if (box1Color == Color.BLUE) {
-            if(box2Color == box1Color && box2Color == box3Color) {
-                computerWon = true;
-            } else if (box1Color == box4Color && box4Color == box7Color) {
-                computerWon = true;
-            } else if(box1Color == box5Color && box5Color == box9Color){
-                computerWon = true;
-            }
-        } else if (box2Color == Color.BLUE) {
-            if (box2Color == box5Color && box5Color == box8Color) {
-                computerWon = true;
-            }
-        } else if (box3Color == Color.BLUE){
-            if(box3Color == box6Color && box6Color == box9Color) {
-                computerWon = true;
-            } else if(box3Color == box5Color && box5Color == box7Color){
-                computerWon = true;
-            }
-        } else if (box4Color == Color.BLUE){
-            if(box4Color == box5Color && box5Color == box6Color){
-                computerWon = true;
-            }
-        } else if (box7Color == Color.BLUE){
-            if(box7Color == box8Color && box8Color == box9Color){
-                computerWon = true;
-            }
+        if (box1Color == Color.BLUE && box2Color == Color.BLUE && box3Color == Color.BLUE) {
+            computerWon = true;
+        } else if (box1Color == Color.BLUE && box4Color == Color.BLUE && box7Color == Color.BLUE){
+            computerWon = true;
+        } else if(box1Color == Color.BLUE && box5Color == Color.BLUE && box9Color == Color.BLUE){
+            computerWon = true;
+        } else if (box2Color == Color.BLUE && box5Color == Color.BLUE && box8Color == Color.BLUE) {
+            computerWon = true;
+        } else if (box3Color == Color.BLUE && box6Color == Color.BLUE && box9Color == Color.BLUE) {
+            computerWon = true;
+        }else if(box3Color == Color.BLUE && box5Color == Color.BLUE && box7Color == Color.BLUE){
+            computerWon = true;
+        } else if (box4Color == Color.BLUE && box5Color == Color.BLUE && box6Color == Color.BLUE){
+            computerWon = true;
+        } else if (box7Color == Color.BLUE && box8Color == Color.BLUE && box9Color == Color.BLUE){
+            computerWon = true;
         }
         return computerWon;
     }
 
     public void logResults(String winner){
-        Toast.makeText(getApplicationContext(), "someone won", Toast.LENGTH_LONG).show();
+        disableButtons();
+        SharedPreferences.Editor editor = prefs.edit();
+        if(winner.equals("user")){
+            editor.putInt("USER_WINS", prefs.getInt("USER_WINS", 0) + 1);
+        } else if (winner.equals("cat")){
+            editor.putInt("CAT_WINS", prefs.getInt("CAT_WINS", 0) + 1);
+        } else if (winner.equals("computer")){
+            editor.putInt("COMP_WINS", prefs.getInt("COMP_WINS", 0) + 1);
+        }
+        editor.commit();
     }
 
     public void disableButtons() {
@@ -271,22 +289,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return buttonToReturn;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-
-        switch(id){
-            case R.id.action_refresh:
-                finish();
-                startActivity(starterIntent);
-                break;
-            case R.id.action_show_stats:
-                //Toast wins and losses
-                break;
-        }
-        return super.onOptionsItemSelected(item);
     }
 
 }
